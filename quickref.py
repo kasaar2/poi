@@ -26,6 +26,7 @@ ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 
 NOTEID = 0
 TIMESTAMP = 1
+
 #########
 # Utils #
 #########
@@ -175,9 +176,9 @@ def delete_note(args):
     # Remove note from history
     update_history(noteid, delete=True)
 
-########
-# List #
-########
+#########
+# search #
+#########
 
 def search_notes(args):
 
@@ -208,10 +209,6 @@ def search_notes(args):
         else:
             noteid_title_and_timestamp.append([noteid, title, timestamp[mode]])
 
-    print_notes(noteid_title_and_timestamp)
-
-
-def print_notes(noteid_title_and_timestamp):
     N = len(noteid_title_and_timestamp)
 
     # if there are no notes, do not show anything
@@ -225,13 +222,17 @@ def print_notes(noteid_title_and_timestamp):
 
     for i, (noteid, title, timestamp) in enumerate(noteid_title_and_timestamp):
         timestamp = dt.datetime.strptime(timestamp[:16], '%Y-%m-%dT%H:%M')
-        print(ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width), timestamp=timestamp, title=title))
+        if args.filepath:
+            print(notepath(noteid))
+        else:
+            print(ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width), timestamp=timestamp, title=title))
         sys.stdout.flush()
         listing[N - 1 - i] = noteid
 
     dump(LISTING, listing)
     infobar = '\ntotal: {}'.format(N)
-    print(infobar)
+    if not args.filepath:
+        print(infobar)
     print()
 
 ########
@@ -253,16 +254,18 @@ def main():
     delete_parser.add_argument('index', help='delete entry at INDEX')
     delete_parser.set_defaults(func=delete_note)
 
-    # poi list 
-    list_parser = subparsers.add_parser('list', help='list notes')
-    list_parser.add_argument('terms', help='list notes withs TERMS', nargs='*')
-    list_parser.add_argument('-c', '--case-sensitive',
+    # poi search 
+    search_parser = subparsers.add_parser('search', help='search notes')
+    search_parser.add_argument('terms', help='search notes withs TERMS', nargs='*')
+    search_parser.add_argument('-c', '--case-sensitive',
             help='case-sensitive search', default=False, action='store_true')
-    list_parser.add_argument('-e', '--edited',
+    search_parser.add_argument('-f', '--filepath',
+            help='only list filepaths', default=False, action='store_true')
+    search_parser.add_argument('-e', '--edited',
             help='sort by day edited', default=False, action='store_true')
-    list_parser.add_argument('-v', '--viewed',
+    search_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
-    list_parser.set_defaults(func=search_notes)
+    search_parser.set_defaults(func=search_notes)
     args = parser.parse_args()
     
     if hasattr(args, 'func'):
