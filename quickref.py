@@ -61,8 +61,11 @@ def update_history(noteid, mode=None, delete=False):
 
     if mode is not None:
         now = dt.datetime.now().isoformat()
-        if mode in ['edited', 'viewed']:
-            history[noteid][mode] = now
+        if mode == 'viewed':
+            history[noteid]['viewed'] = now
+        elif mode == 'edited':
+            history[noteid]['edited'] = now
+            history[noteid]['viewed'] = now
         elif mode == 'created':
             history[noteid] = {}
             history[noteid]['created'] = now 
@@ -176,9 +179,21 @@ def delete_note(args):
     # Remove note from history
     update_history(noteid, delete=True)
 
-#########
-# search #
-#########
+
+########
+# Edit #
+########
+
+
+def edit_note(args):
+    noteid = fetch_noteid(args)
+    update_history(noteid, mode='edited')
+    open_editor(noteid)
+
+
+##########
+# Search #
+##########
 
 def search_notes(args):
 
@@ -235,6 +250,34 @@ def search_notes(args):
         print(infobar)
     print()
 
+
+########
+# View #
+########
+
+def show_in_pager(noteid):
+    with open(notepath(noteid)) as f:
+        pydoc.pager(f.read().strip())
+
+def print_note(noteid):
+    with open(notepath(noteid)) as f:
+        print(f.read().strip())
+
+def view_note(args):
+    noteid = fetch_noteid(args)
+    if args.print:
+        print_note(noteid)
+    else:
+        show_in_pager(noteid)
+
+
+
+
+
+
+
+
+
 ########
 # Main #
 ########
@@ -254,6 +297,12 @@ def main():
     delete_parser.add_argument('index', help='delete entry at INDEX')
     delete_parser.set_defaults(func=delete_note)
 
+    # poi edit
+    edit_parser = subparsers.add_parser('edit', help='edit note')
+    edit_parser.add_argument('index', help='edit entry at INDEX')
+    edit_parser.set_defaults(func=edit_note)
+
+
     # poi search 
     search_parser = subparsers.add_parser('search', help='search notes')
     search_parser.add_argument('terms', help='search notes withs TERMS', nargs='*')
@@ -266,8 +315,15 @@ def main():
     search_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
     search_parser.set_defaults(func=search_notes)
-    args = parser.parse_args()
     
+    # poi view
+    view_parser = subparsers.add_parser('view', help='view note')
+    view_parser.add_argument('index', help='view entry at INDEX')
+    view_parser.add_argument('-p', '--print',
+            help='print note on the screen', default=False, action='store_true')
+    view_parser.set_defaults(func=view_note)
+
+    args = parser.parse_args()
     if hasattr(args, 'func'):
         args.func(args)
     else:
