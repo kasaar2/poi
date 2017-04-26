@@ -24,6 +24,8 @@ HISTORY = 'history.json'
 LISTING = 'listing.json'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 
+NOTEID = 0
+TIMESTAMP = 1
 #########
 # Utils #
 #########
@@ -78,8 +80,8 @@ def fetch_noteid(args):
         history = load(HISTORY)
         # Find the note with the most recent timestamp on some activity.
         note = max(history.items(),
-                key=lambda x: max(x[1]['created'], x[1]['viewed'], x[1]['viewed']))
-        noteid = note[0]
+                key=lambda x: max(x[TIMESTAMP]['created'], x[TIMESTAMP]['viewed'], x[TIMESTAMP]['viewed']))
+        noteid = note[NOTEID]
         return noteid
     else: 
         listing = load(LISTING)
@@ -188,11 +190,11 @@ def search_notes(args):
     
     history = load(HISTORY)
     # Sort notes by type of date given by mode:
-    notes = sorted(history.items(), key=lambda x: x[1][mode])
+    notes = sorted(history.items(), key=lambda x: x[TIMESTAMP][mode])
 
-    noteid_title_and_date = []
+    noteid_title_and_timestamp = []
     
-    for noteid, dates in notes:
+    for noteid, timestamp in notes:
         with open(notepath(noteid)) as f:
             text = f.read().strip()
         title = text.strip().split('\n')[0].strip()
@@ -204,13 +206,13 @@ def search_notes(args):
             if term not in text:
                 break
         else:
-            noteid_title_and_date.append([noteid, title, dates[mode]])
+            noteid_title_and_timestamp.append([noteid, title, timestamp[mode]])
 
-    print_notes(noteid_title_and_date)
+    print_notes(noteid_title_and_timestamp)
 
 
-def print_notes(noteid_title_and_date):
-    N = len(noteid_title_and_date)
+def print_notes(noteid_title_and_timestamp):
+    N = len(noteid_title_and_timestamp)
 
     # if there are no notes, do not show anything
     if N == 0:
@@ -221,8 +223,8 @@ def print_notes(noteid_title_and_date):
     index_width = int(floor(log10(N)) + 1)
     listing = {}
 
-    for i, (noteid, title, date) in enumerate(noteid_title_and_date):
-        timestamp = dt.datetime.strptime(date[:16], '%Y-%m-%dT%H:%M')
+    for i, (noteid, title, timestamp) in enumerate(noteid_title_and_timestamp):
+        timestamp = dt.datetime.strptime(timestamp[:16], '%Y-%m-%dT%H:%M')
         print(ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width), timestamp=timestamp, title=title))
         sys.stdout.flush()
         listing[N - 1 - i] = noteid
