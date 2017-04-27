@@ -132,7 +132,7 @@ def add_note(args):
     Note: the arguments args is not used, but required by argparse syntax.
     """
     noteid = create_noteid()
-    viewupdate_history(noteid, mode='created')
+    update_history(noteid, mode='created')
     open_editor(noteid)
 
 
