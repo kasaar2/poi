@@ -207,10 +207,10 @@ def init(args):
 
 
 ##########
-# Search #
+# list #
 ##########
 
-def search_notes(args):
+def list_notes(args):
 
     if args.edited:
         mode = 'edited'
@@ -322,18 +322,18 @@ def main():
     init_parser = subparsers.add_parser('init', help='initialize poi repository here')
     init_parser.set_defaults(func=init)
 
-    # poi search 
-    search_parser = subparsers.add_parser('search', help='search notes')
-    search_parser.add_argument('terms', help='search notes withs TERMS', nargs='*')
-    search_parser.add_argument('-c', '--case-sensitive',
-            help='case-sensitive search', default=False, action='store_true')
-    search_parser.add_argument('-f', '--filepath',
+    # poi list 
+    list_parser = subparsers.add_parser('list', help='list notes')
+    list_parser.add_argument('terms', help='list notes withs TERMS', nargs='*')
+    list_parser.add_argument('-c', '--case-sensitive',
+            help='case-sensitive list', default=False, action='store_true')
+    list_parser.add_argument('-f', '--filepath',
             help='only list filepaths', default=False, action='store_true')
-    search_parser.add_argument('-e', '--edited',
+    list_parser.add_argument('-e', '--edited',
             help='sort by day edited', default=False, action='store_true')
-    search_parser.add_argument('-v', '--viewed',
+    list_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
-    search_parser.set_defaults(func=search_notes)
+    list_parser.set_defaults(func=list_notes)
     
     # poi view
     view_parser = subparsers.add_parser('view', help='view note')
