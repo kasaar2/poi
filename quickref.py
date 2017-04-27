@@ -191,6 +191,21 @@ def edit_note(args):
     open_editor(noteid)
 
 
+########
+# Init #
+########
+
+def init(args):
+    if os.listdir():
+        print("poi: directory not empty, aborting init.")
+    else:
+        with open(HISTORY, 'w') as f:
+            f.write('{}')
+        with open(LISTING, 'w') as f:
+            f.write('{}')
+        print("poi: initialized")
+
+
 ##########
 # Search #
 ##########
@@ -303,6 +318,9 @@ def main():
     edit_parser.add_argument('index', help='edit entry at INDEX')
     edit_parser.set_defaults(func=edit_note)
 
+    # poi init 
+    init_parser = subparsers.add_parser('init', help='initialize poi repository here')
+    init_parser.set_defaults(func=init)
 
     # poi search 
     search_parser = subparsers.add_parser('search', help='search notes')
