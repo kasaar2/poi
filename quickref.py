@@ -245,11 +245,14 @@ def list_notes(args):
     # if there are no notes, do not show anything
     if N == 0:
         return None
-    else:
-        print()
+
 
     index_width = int(floor(log10(N)) + 1)
     listing = {}
+
+
+    if not args.filepath:
+        print()
 
     for i, (noteid, title, timestamp) in enumerate(noteid_title_and_timestamp):
         timestamp = dt.datetime.strptime(timestamp[:16], '%Y-%m-%dT%H:%M')
@@ -264,7 +267,7 @@ def list_notes(args):
     infobar = '\ntotal: {}'.format(N)
     if not args.filepath:
         print(infobar)
-    print()
+        print()
 
 
 ##########
