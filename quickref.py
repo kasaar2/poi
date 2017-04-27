@@ -280,19 +280,22 @@ def print_note(noteid):
 
 def view_note(args):
     noteid = fetch_noteid(args)
-    update_history(noteid, mode='viewed')
-    if args.print:
-        print_note(noteid)
+  
+    if args.info:
+        history = load(HISTORY)
+        print('\t' + 'filepath'.rjust(10) + ':', notepath(noteid))
+        for mode in ['created', 'edited', 'viewed']:
+            timestamp = dt.datetime.strptime(history[noteid][mode][:16], '%Y-%m-%dT%H:%M')
+            print('\t' + mode.rjust(10) + ':', timestamp.strftime('%Y-%m-%d %a %H:%M'))
     else:
-        show_in_pager(noteid)
-
-
-
-
-
-
-
-
+        if args.filepath:
+            print(notepath(noteid))
+        else:
+            update_history(noteid, mode='viewed')
+            if args.print:
+                print_note(noteid)
+            else:
+                show_in_pager(noteid)
 
 ########
 # Main #
@@ -340,6 +343,10 @@ def main():
     view_parser.add_argument('index', help='view entry at INDEX')
     view_parser.add_argument('-p', '--print',
             help='print note on the screen', default=False, action='store_true')
+    view_parser.add_argument('-f', '--filepath',
+            help='only show filepath', default=False, action='store_true')
+    view_parser.add_argument('-i', '--info',
+            help='show information about this note', default=False, action='store_true')
     view_parser.set_defaults(func=view_note)
 
     args = parser.parse_args()
