@@ -6,6 +6,7 @@ import fnmatch
 import json
 import os
 import pydoc
+import random
 import shutil
 import subprocess
 import sys
@@ -266,6 +267,20 @@ def list_notes(args):
     print()
 
 
+##########
+# Random #
+##########
+
+
+def random_note(args):
+    history = load(HISTORY)
+    noteids = list(history.keys())
+    N = len(noteids)
+    i = random.randint(0, N - 1)
+    noteid = noteids[i]
+    update_history(noteid, mode='viewed')
+    show_in_pager(noteid)
+
 ########
 # View #
 ########
@@ -337,6 +352,12 @@ def main():
     list_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
     list_parser.set_defaults(func=list_notes)
+
+
+    # poi random 
+    random_parser = subparsers.add_parser('random', help='show a random note')
+    random_parser.set_defaults(func=random_note)
+
     
     # poi view
     view_parser = subparsers.add_parser('view', help='view note')
