@@ -288,14 +288,6 @@ def random_note(args):
 # View #
 ########
 
-def show_in_pager(noteid):
-    with open(notepath(noteid)) as f:
-        pydoc.pager(f.read().strip())
-
-def print_note(noteid):
-    with open(notepath(noteid)) as f:
-        print(f.read().strip())
-
 def view_note(args):
     noteid = fetch_noteid(args)
   
@@ -310,10 +302,14 @@ def view_note(args):
             print(notepath(noteid))
         else:
             update_history(noteid, mode='viewed')
+            with open(notepath(noteid)) as f:
+                text = f.read().strip()
+            if args.line_numbers:
+                text = '\n'.join(str(i) + '\t' + line for i, line in enumerate(text.split('\n'), start=1))
             if args.print:
-                print_note(noteid)
+                print(text)
             else:
-                show_in_pager(noteid)
+                pydoc.pager(text)
 
 ########
 # Main #
@@ -371,6 +367,8 @@ def main():
             help='only show filepath', default=False, action='store_true')
     view_parser.add_argument('-i', '--info',
             help='show information about this note', default=False, action='store_true')
+    view_parser.add_argument('-n', '--line-numbers',
+            help='show line numbers', default=False, action='store_true')
     view_parser.set_defaults(func=view_note)
 
     args = parser.parse_args()
