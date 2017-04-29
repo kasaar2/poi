@@ -283,7 +283,9 @@ def random_note(args):
     i = random.randint(0, N - 1)
     noteid = noteids[i]
     update_history(noteid, mode='viewed')
-    show_in_pager(noteid)
+    with open(notepath(noteid)) as f:
+        text = f.read()
+    pydoc.pager(text)
 
 ########
 # View #
