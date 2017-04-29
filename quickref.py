@@ -225,6 +225,12 @@ def list_notes(args):
     # Sort notes by type of date given by mode:
     notes = sorted(history.items(), key=lambda x: x[TIMESTAMP][mode])
 
+    if args.since:
+        notes = [note for note in notes if args.since <= note[TIMESTAMP]['created'][:10]]
+
+    if args.before:
+        notes = [note for note in notes if args.before >= note[TIMESTAMP]['created'][:10]]
+
     noteid_title_and_timestamp = []
     
     for noteid, timestamp in notes:
@@ -376,6 +382,10 @@ def main():
             help='sort by day edited', default=False, action='store_true')
     list_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
+    list_parser.add_argument('-s', '--since',
+            help='only include notes created since (incl)')
+    list_parser.add_argument('-b', '--before',
+            help='only include notes created before (excl)')
     list_parser.set_defaults(func=list_notes)
 
 
