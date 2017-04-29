@@ -306,6 +306,24 @@ def view_note(args):
                 text = f.read().strip()
             if args.line_numbers:
                 text = '\n'.join(str(i) + '\t' + line for i, line in enumerate(text.split('\n'), start=1))
+            if args.include_lines:
+                numbers = args.include_lines.split(',')
+                lines = text.splitlines()
+                newtext = ''
+                for i in numbers:
+                    try:
+                        if i.isdigit():
+                            newtext += lines[int(i) - 1] + '\n'
+                        else:
+                            s, e = i.split('-')
+                            if e == '':
+                                newtext += '\n'.join(lines[int(s) - 1:]) 
+                            else:
+                                newtext += '\n'.join(lines[int(s) - 1:int(e)]) 
+                    except:
+                        print("poi: invalid range specification")
+                        sys.exit(0)
+                text = newtext
             if args.print:
                 print(text)
             else:
@@ -367,6 +385,8 @@ def main():
             help='only show filepath', default=False, action='store_true')
     view_parser.add_argument('-i', '--info',
             help='show information about this note', default=False, action='store_true')
+    view_parser.add_argument('-l', '--include-lines',
+            help='only include given lines')
     view_parser.add_argument('-n', '--line-numbers',
             help='show line numbers', default=False, action='store_true')
     view_parser.set_defaults(func=view_note)
