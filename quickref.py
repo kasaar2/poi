@@ -354,8 +354,9 @@ def view_note(args):
 ########
 
 def main():
+
     # parse_arguments()
-    parser = argparse.ArgumentParser(description='Points of Interest')
+    parser = argparse.ArgumentParser(description='poi: Points of Interest')
     parser.add_argument("-v", "--version", action='version', version=__VERSION__)
     subparsers = parser.add_subparsers()
 
@@ -379,9 +380,9 @@ def main():
 
     # poi list 
     list_parser = subparsers.add_parser('list', help='list notes')
-    list_parser.add_argument('terms', help='list notes withs TERMS', nargs='*')
+    list_parser.add_argument('terms', help='list notes that include each of TERMS', nargs='*')
     list_parser.add_argument('-c', '--case-sensitive',
-            help='case-sensitive list', default=False, action='store_true')
+            help="don't ignore case", default=False, action='store_true')
     list_parser.add_argument('-f', '--filepath',
             help='only list filepaths', default=False, action='store_true')
     list_parser.add_argument('-e', '--edited',
@@ -389,9 +390,9 @@ def main():
     list_parser.add_argument('-v', '--viewed',
             help='sort by day viewed', default=False, action='store_true')
     list_parser.add_argument('-s', '--since',
-            help='only include notes created since (incl)')
+            help='only list notes created since (inclusive)')
     list_parser.add_argument('-b', '--before',
-            help='only include notes created before (excl)')
+            help='only list notes created before (exclusive)')
     list_parser.set_defaults(func=list_notes)
 
 
