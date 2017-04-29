@@ -297,6 +297,15 @@ def random_note(args):
 # View #
 ########
 
+def copy_to_clipboard(text):
+    if os.uname()[0] == 'Darwin':
+        # Escape '\' so as to not distrurb echo
+        text = re.sub('"', r'\"', text)
+        subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
+    else:
+        print("poi: currently clipboard only implemented for Mac")
+
+
 def view_note(args):
     noteid = fetch_noteid(args)
   
@@ -334,10 +343,7 @@ def view_note(args):
                         sys.exit(0)
                 text = newtext
             if args.clipboard:
-                if os.uname()[0] == 'Darwin':
-                    # Escape '\' so as to not distrurb echo
-                    text = re.sub('"', r'\"', text)
-                    subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
+                copy_to_clipboard(text)
             elif args.print:
                 print(text)
             else:
