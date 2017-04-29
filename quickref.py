@@ -7,6 +7,7 @@ import json
 import os
 import pydoc
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -324,7 +325,12 @@ def view_note(args):
                         print("poi: invalid range specification")
                         sys.exit(0)
                 text = newtext
-            if args.print:
+            if args.clipboard:
+                if os.uname()[0] == 'Darwin':
+                    # Escape '\' so as to not distrurb echo
+                    text = re.sub('"', r'\"', text)
+                    subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
+            elif args.print:
                 print(text)
             else:
                 pydoc.pager(text)
@@ -389,6 +395,8 @@ def main():
             help='only include given lines')
     view_parser.add_argument('-n', '--line-numbers',
             help='show line numbers', default=False, action='store_true')
+    view_parser.add_argument('-c', '--clipboard',
+            help='copy to clipboard', default=False, action='store_true')
     view_parser.set_defaults(func=view_note)
 
     args = parser.parse_args()
