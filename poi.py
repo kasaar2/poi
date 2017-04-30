@@ -226,10 +226,12 @@ def list_notes(args):
     notes = sorted(notes, key=lambda x: x[mode])
 
     if args.since:
-        notes = [note for note in notes if args.since <= note['created']]
+        since = args.since.replace('-', '')
+        notes = [note for note in notes if since <= note['created']]
 
     if args.before:
-        notes = [note for note in notes if args.before >= note['created']]
+        before = args.before.replace('-', '')
+        notes = [note for note in notes if before >= note['created']]
 
     name_title_and_timestamp = []
     
