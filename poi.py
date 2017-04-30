@@ -19,7 +19,7 @@ from math import floor, log10
 from random import choice
 
 
-__VERSION__ = '2.0.0'
+__VERSION__ = '2.0.1'
 EDITOR = 'vim'
 HOME = os.getcwd()
 EXTENSION = '.poi'
@@ -44,6 +44,8 @@ def load_lastnote():
 
 
 def load_listing():
+    if not os.path.exists(LISTING):
+        return None
     with open(LISTING, 'r') as f:
         return json.load(f)
 
@@ -90,8 +92,6 @@ def fetch_note(args):
         if note is None:
             print('poi: last note is not available')
             sys.exit(0)
-        else:
-            return note
     else: 
         listing = load_listing()
         try:
@@ -100,8 +100,9 @@ def fetch_note(args):
         except:
             print('poi: index {} not available in last listing'.format(N))
             sys.exit(0)
-        else:
-            return note 
+    with open(LASTNOTE, 'w') as f:
+        f.write(note['name'] + '\n')
+    return note
 
 
 def parse_noteinfo(name):
@@ -164,19 +165,6 @@ def add_note(args):
 # Delete #
 #########E
 
-def delete_file(filepath):
-    """
-    Delete a note file and its parent directory if it is empty.
-    """
-    os.remove(filepath)
-    # remove child directory of 2017/04 if its empty, but keep 2017/
-    dirname = os.path.dirname(filepath)
-    # Remove dir if it is empty, otherwise ignore.
-    # http://stackoverflow.com/a/6215451
-    try:
-        os.rmdir(dirname)
-    except OSError:
-        pass
 
 def delete_note(args):
     note = fetch_note(args)
@@ -187,19 +175,26 @@ def delete_note(args):
     print('---')
     ans = input('poi: delete (y/n)? ')
     if ans != 'y':
-        print('     cancelled')
+        print('--->  cancelled')
         sys.exit(0)
     else:
-        delete_file(note['name'])
-        print('     deleted')
+        os.remove(note['name'])
+        print('---> deleted')
 
     # Remove note from last listing
     listing = load_listing()
-    for index, name in list(listing.items()):
-        if name == note['name']:
-            del listing[index]
-    with open(LISTING, 'w') as f:
-        json.dump(listing, f)
+    if listing is not None:
+        for index, name in list(listing.items()):
+            if name == note['name']:
+                del listing[index]
+        with open(LISTING, 'w') as f:
+            json.dump(listing, f)
+
+    # Remove last note if this was it
+    lastnote = load_lastnote()
+    if lastnote is not None:
+        if note['name'] == lastnote['name']:
+            os.remove(LASTNOTE)
 
 
 ########
