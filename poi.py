@@ -3,6 +3,7 @@
 import argparse
 import configparser
 import fnmatch
+import glob
 import json
 import os
 import pydoc
@@ -18,12 +19,12 @@ from math import floor, log10
 from random import choice
 
 
-__VERSION__ = '1.0.0'
+__VERSION__ = '2.0.0'
 EDITOR = 'vim'
 HOME = os.getcwd()
 EXTENSION = '.poi'
-HISTORY = 'history.json'
 LISTING = 'listing.json'
+LASTNOTE = 'lastnote'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 
 NOTEID = 0
@@ -33,99 +34,121 @@ TIMESTAMP = 1
 # Utils #
 #########
 
-def load(path):
-    with open(path, 'r') as f:
+def load_lastnote():
+    if not os.path.exists(LASTNOTE):
+        return None
+    else:
+        with open(LASTNOTE, 'r') as f:
+            name = f.read().strip()
+        return parse_noteinfo(name)
+
+
+def load_listing():
+    with open(LISTING, 'r') as f:
         return json.load(f)
 
-def dump(path, js):
-    with open(path, 'w') as f:
-        json.dump(js, f, sort_keys=True, indent=4)
 
-def notepath(noteid):
-    """
-    Return the full filepath corresponding to noteid.
-    """
-    prefix = noteid[:2]
-    suffix = noteid[2:]
-    dirname = os.path.join(HOME, prefix)
-    return os.path.join(dirname, suffix + EXTENSION)
+def open_editor(path):
+    subprocess.call(['/usr/bin/env', EDITOR, path])
 
-def open_editor(noteid):
-    fpath = notepath(noteid)
-    subprocess.call(['/usr/bin/env', EDITOR, fpath])
 
-def update_history(noteid, mode=None, delete=False):
-    """
-    Update history by changing a viewing or editing date, inserting a new
-    records for a created note, or by deleting a record of a note.
-    """
-    history = load(HISTORY)
+def update_info(note, mode):
+    old = note
+    new = old.copy()
+    now = dt.datetime.now().strftime('%Y%m%d%H%M%S')
+    if mode == 'viewed':
+        new['viewed'] = now
+    elif mode == 'edited':
+        new['edited'] = now
+        new['viewed'] = now
+    else:
+        pass
+    new['name'] = new['created'] + new['edited'] + new['viewed'] + EXTENSION
 
-    if mode is not None:
-        now = dt.datetime.now().isoformat()
-        if mode == 'viewed':
-            history[noteid]['viewed'] = now
-        elif mode == 'edited':
-            history[noteid]['edited'] = now
-            history[noteid]['viewed'] = now
-        elif mode == 'created':
-            history[noteid] = {}
-            history[noteid]['created'] = now 
-            history[noteid]['edited'] = now 
-            history[noteid]['viewed'] = now 
+    shutil.move(old['name'], new['name']) 
 
-    if delete:
-        del history[noteid]
+    # Update lastnote
+    with open(LASTNOTE, 'w') as f:
+        f.write(new['name'] + '\n')
 
-    dump(HISTORY, history)
+    # Update information in listing
+    listing = load_listing()
+    for index, name in listing.items():
+        if name == old['name']:
+            listing[index] = new['name']
+    with open(LISTING, 'w') as f:
+        json.dump(listing, f)
 
-def fetch_noteid(args):
+    return new
+
+
+def fetch_note(args):
     # Type of N is str
     N = args.index 
     if N == '_':
-        history = load(HISTORY)
-        # Find the note with the most recent timestamp on some activity.
-        note = max(history.items(),
-                key=lambda x: max(x[TIMESTAMP]['created'], x[TIMESTAMP]['viewed'], x[TIMESTAMP]['viewed']))
-        noteid = note[NOTEID]
-        return noteid
-    else: 
-        listing = load(LISTING)
-        if N in listing:
-            noteid = listing[str(N)]
-            return noteid
+        note = load_lastnote()
+        if note is None:
+            print('poi: last note is not available')
+            sys.exit(0)
         else:
+            return note
+    else: 
+        listing = load_listing()
+        try:
+            name = listing[N]
+            note = parse_noteinfo(name)
+        except:
             print('poi: index {} not available in last listing'.format(N))
             sys.exit(0)
+        else:
+            return note 
+
+
+def parse_noteinfo(name):
+    note = {}
+    note['name'] = name
+    note['created'] = name[:14]
+    note['edited'] = name[14:28]
+    note['viewed'] = name[28:42]
+    return note
+
+
+def load_notes():
+    notes = []
+    filenames = glob.glob('*' + EXTENSION)
+    for filename in filenames:
+        note = parse_noteinfo(filename) 
+        notes.append(note)
+    return notes
+
 
 #######
 # Add #
 #######
 
-def touch_file(fpath, content=''):
-    if not os.path.exists(fpath):
-        with open(fpath, 'w') as f:
+def touch_file(path, content=''):
+    if not os.path.exists(path):
+        with open(path, 'w') as f:
             f.write(content)
 
-def create_noteid():
+
+def create_file():
     """
-    Create a noteid that corresponds to a unique filepath in the file system.
+    Create a filepath that corresponds to a unique filepath in the file system.
     Create auxiliary subdirectory if necessary.
     """
+    delta = dt.timedelta(seconds=1)
+    now = dt.datetime.now()
     while True:
-        # http://stackoverflow.com/a/20060712
-        noteid = uuid.uuid4().hex
-        fpath = notepath(noteid)
-        dirname = os.path.dirname(fpath)
-
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
+        ts = now.strftime('%Y%m%d%H%M%S')
+        filename = ts + ts + ts + EXTENSION 
+        if not os.path.exists(filename):
             break
-        if not os.path.exists(fpath):
-            break
+        else:
+            now += delta
+    touch_file(filename, content='')
+    return filename
 
-    touch_file(fpath, content='')
-    return noteid
 
 def add_note(args):
     """
@@ -133,22 +156,21 @@ def add_note(args):
 
     Note: the arguments args is not used, but required by argparse syntax.
     """
-    noteid = create_noteid()
-    update_history(noteid, mode='created')
-    open_editor(noteid)
+    path = create_file()
+    open_editor(path)
 
 
 ##########
 # Delete #
 #########E
 
-def delete_file(noteid):
+def delete_file(filepath):
     """
     Delete a note file and its parent directory if it is empty.
     """
-    fpath = notepath(noteid)
-    os.remove(fpath)
-    dirname = os.path.dirname(fpath)
+    os.remove(filepath)
+    # remove child directory of 2017/04 if its empty, but keep 2017/
+    dirname = os.path.dirname(filepath)
     # Remove dir if it is empty, otherwise ignore.
     # http://stackoverflow.com/a/6215451
     try:
@@ -157,8 +179,8 @@ def delete_file(noteid):
         pass
 
 def delete_note(args):
-    noteid = fetch_noteid(args)
-    with open(notepath(noteid)) as f:
+    note = fetch_note(args)
+    with open(note['name']) as f:
         text = f.read()
     print('---')
     print(text.strip())
@@ -168,18 +190,16 @@ def delete_note(args):
         print('     cancelled')
         sys.exit(0)
     else:
-        delete_file(noteid)
+        delete_file(note['name'])
         print('     deleted')
 
     # Remove note from last listing
-    listing = load(LISTING)
-    for index, noteid_ in list(listing.items()):
-        if noteid_ == noteid:
+    listing = load_listing()
+    for index, name in list(listing.items()):
+        if name == note['name']:
             del listing[index]
-    dump(LISTING, listing)
-
-    # Remove note from history
-    update_history(noteid, delete=True)
+    with open(LISTING, 'w') as f:
+        json.dump(listing, f)
 
 
 ########
@@ -188,24 +208,9 @@ def delete_note(args):
 
 
 def edit_note(args):
-    noteid = fetch_noteid(args)
-    update_history(noteid, mode='edited')
-    open_editor(noteid)
-
-
-########
-# Init #
-########
-
-def init(args):
-    if os.listdir():
-        print("poi: directory not empty, aborting init.")
-    else:
-        with open(HISTORY, 'w') as f:
-            f.write('{}')
-        with open(LISTING, 'w') as f:
-            f.write('{}')
-        print("poi: initialized")
+    note = fetch_note(args)
+    note = update_info(note, mode='edited')
+    open_editor(note['name'])
 
 
 ##########
@@ -220,21 +225,21 @@ def list_notes(args):
         mode = 'viewed'
     else:  # default 
         mode = 'created'
-    
-    history = load(HISTORY)
+
     # Sort notes by type of date given by mode:
-    notes = sorted(history.items(), key=lambda x: x[TIMESTAMP][mode])
+    notes = load_notes() 
+    notes = sorted(notes, key=lambda x: x[mode])
 
     if args.since:
-        notes = [note for note in notes if args.since <= note[TIMESTAMP]['created'][:10]]
+        notes = [note for note in notes if args.since <= note['created']]
 
     if args.before:
-        notes = [note for note in notes if args.before >= note[TIMESTAMP]['created'][:10]]
+        notes = [note for note in notes if args.before >= note['created']]
 
-    noteid_title_and_timestamp = []
+    name_title_and_timestamp = []
     
-    for noteid, timestamp in notes:
-        with open(notepath(noteid)) as f:
+    for note in notes:
+        with open(note['name']) as f:
             text = f.read().strip()
         title = text.strip().split('\n')[0].strip()
 
@@ -245,9 +250,9 @@ def list_notes(args):
             if term not in text:
                 break
         else:
-            noteid_title_and_timestamp.append([noteid, title, timestamp[mode]])
+            name_title_and_timestamp.append([note['name'], title, note[mode]])
 
-    N = len(noteid_title_and_timestamp)
+    N = len(name_title_and_timestamp)
 
     # if there are no notes, do not show anything
     if N == 0:
@@ -261,16 +266,18 @@ def list_notes(args):
     if not args.filepath:
         print()
 
-    for i, (noteid, title, timestamp) in enumerate(noteid_title_and_timestamp):
-        timestamp = dt.datetime.strptime(timestamp[:16], '%Y-%m-%dT%H:%M')
+    for i, (name, title, timestamp) in enumerate(name_title_and_timestamp):
+        timestamp = dt.datetime.strptime(timestamp[:14], '%Y%m%d%H%M%S')
         if args.filepath:
-            print(notepath(noteid))
+            print(path)
         else:
             print(ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width), timestamp=timestamp, title=title))
         sys.stdout.flush()
-        listing[N - 1 - i] = noteid
+        listing[N - 1 - i] = name 
 
-    dump(LISTING, listing)
+    with open(LISTING, 'w') as f:
+        json.dump(listing, f)
+
     infobar = '\ntotal: {}'.format(N)
     if not args.filepath:
         print(infobar)
@@ -283,13 +290,12 @@ def list_notes(args):
 
 
 def random_note(args):
-    history = load(HISTORY)
-    noteids = list(history.keys())
-    N = len(noteids)
+    notes = load_notes()
+    N = len(notes)
     i = random.randint(0, N - 1)
-    noteid = noteids[i]
-    update_history(noteid, mode='viewed')
-    with open(notepath(noteid)) as f:
+    note = notes[i]
+    note = update_info(note, mode='viewed')
+    with open(note['name']) as f:
         text = f.read()
     pydoc.pager(text)
 
@@ -307,23 +313,25 @@ def copy_to_clipboard(text):
 
 
 def view_note(args):
-    noteid = fetch_noteid(args)
-  
+    note = fetch_note(args)
+    note = update_info(note, mode='viewed')
+
     if args.info:
-        history = load(HISTORY)
-        print('\t' + 'filepath'.rjust(10) + ':', notepath(noteid))
+        print('\t' + 'filepath'.rjust(10) + ':', note['name'])
         for mode in ['created', 'edited', 'viewed']:
-            timestamp = dt.datetime.strptime(history[noteid][mode][:16], '%Y-%m-%dT%H:%M')
+            timestamp = dt.datetime.strptime(note[mode][:16], '%Y%m%d%H%M%S')
             print('\t' + mode.rjust(10) + ':', timestamp.strftime('%Y-%m-%d %a %H:%M'))
     else:
         if args.filepath:
-            print(notepath(noteid))
+            print(note['name'])
         else:
-            update_history(noteid, mode='viewed')
-            with open(notepath(noteid)) as f:
+
+            with open(note['name']) as f:
                 text = f.read().strip()
+
             if args.line_numbers:
                 text = '\n'.join(str(i) + '\t' + line for i, line in enumerate(text.split('\n'), start=1))
+
             if args.include_lines:
                 numbers = args.include_lines.split(',')
                 lines = text.splitlines()
@@ -373,10 +381,6 @@ def main():
     edit_parser = subparsers.add_parser('edit', help='edit note')
     edit_parser.add_argument('index', help='edit entry at INDEX')
     edit_parser.set_defaults(func=edit_note)
-
-    # poi init 
-    init_parser = subparsers.add_parser('init', help='initialize poi repository here')
-    init_parser.set_defaults(func=init)
 
     # poi list 
     list_parser = subparsers.add_parser('list', help='list notes')
