@@ -107,10 +107,13 @@ def fetch_note(args):
 
 def parse_noteinfo(name):
     note = {}
-    note['name'] = name
-    note['created'] = name[:14]
-    note['edited'] = name[14:28]
-    note['viewed'] = name[28:42]
+    try:
+        note['name'] = name
+        note['created'] = name[:14]
+        note['edited'] = name[14:28]
+        note['viewed'] = name[28:42]
+    except:
+        print('invalid filename:', name)
     return note
 
 
@@ -254,7 +257,11 @@ def list_notes(args):
         print()
 
     for i, (name, title, timestamp) in enumerate(name_title_and_timestamp):
-        timestamp = dt.datetime.strptime(timestamp[:14], '%Y%m%d%H%M%S')
+        try:
+            timestamp = dt.datetime.strptime(timestamp[:14], '%Y%m%d%H%M%S')
+        except:
+            print('invalid filename:', name)
+            continue
         if args.filepath:
             print(path)
         else:
