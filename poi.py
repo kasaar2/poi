@@ -19,20 +19,17 @@ from math import floor, log10
 from random import choice
 
 
-__VERSION__ = '2.0.1'
+__VERSION__ = '2.0.2'
 EDITOR = 'vim'
-HOME = os.getcwd()
 EXTENSION = '.poi'
 LISTING = 'listing.json'
 LASTNOTE = 'lastnote'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 
-NOTEID = 0
-TIMESTAMP = 1
-
 #########
 # Utils #
 #########
+
 
 def load_lastnote():
     if not os.path.exists(LASTNOTE):
@@ -55,6 +52,8 @@ def open_editor(path):
 
 
 def update_info(note, mode):
+
+    # Update note's fiename
     old = note
     new = old.copy()
     now = dt.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -67,7 +66,7 @@ def update_info(note, mode):
         pass
     new['name'] = new['created'] + new['edited'] + new['viewed'] + EXTENSION
 
-    shutil.move(old['name'], new['name']) 
+    shutil.move(old['name'], new['name'])
 
     # Update lastnote
     with open(LASTNOTE, 'w') as f:
@@ -86,19 +85,20 @@ def update_info(note, mode):
 
 def fetch_note(args):
     # Type of N is str
-    N = args.index 
+    N = args.index
     if N == '_':
         note = load_lastnote()
         if note is None:
             print('poi: last note is not available')
             sys.exit(0)
-    else: 
+    else:
         listing = load_listing()
         try:
             name = listing[N]
             note = parse_noteinfo(name)
         except:
-            print('poi: index {} not available in last listing'.format(N))
+            print(
+              'poi: note at index {} not available in last listing'.format(N))
             sys.exit(0)
     with open(LASTNOTE, 'w') as f:
         f.write(note['name'] + '\n')
@@ -118,7 +118,7 @@ def load_notes():
     notes = []
     filenames = glob.glob('*' + EXTENSION)
     for filename in filenames:
-        note = parse_noteinfo(filename) 
+        note = parse_noteinfo(filename)
         notes.append(note)
     return notes
 
@@ -127,6 +127,7 @@ def load_notes():
 # Add #
 #######
 
+
 def touch_file(path, content=''):
     if not os.path.exists(path):
         with open(path, 'w') as f:
@@ -134,15 +135,11 @@ def touch_file(path, content=''):
 
 
 def create_file():
-    """
-    Create a filepath that corresponds to a unique filepath in the file system.
-    Create auxiliary subdirectory if necessary.
-    """
     delta = dt.timedelta(seconds=1)
     now = dt.datetime.now()
     while True:
         ts = now.strftime('%Y%m%d%H%M%S')
-        filename = ts + ts + ts + EXTENSION 
+        filename = ts + ts + ts + EXTENSION
         if not os.path.exists(filename):
             break
         else:
@@ -152,18 +149,13 @@ def create_file():
 
 
 def add_note(args):
-    """
-    Add note. Poi creates a fileid automatically.
-
-    Note: the arguments args is not used, but required by argparse syntax.
-    """
     path = create_file()
     open_editor(path)
 
 
 ##########
 # Delete #
-#########E
+##########
 
 
 def delete_note(args):
@@ -218,11 +210,11 @@ def list_notes(args):
         mode = 'edited'
     elif args.viewed:
         mode = 'viewed'
-    else:  # default 
+    else:  # default
         mode = 'created'
 
     # Sort notes by type of date given by mode:
-    notes = load_notes() 
+    notes = load_notes()
     notes = sorted(notes, key=lambda x: x[mode])
 
     if args.since:
@@ -234,7 +226,7 @@ def list_notes(args):
         notes = [note for note in notes if before >= note['created']]
 
     name_title_and_timestamp = []
-    
+
     for note in notes:
         with open(note['name']) as f:
             text = f.read().strip()
@@ -255,10 +247,8 @@ def list_notes(args):
     if N == 0:
         return None
 
-
     index_width = int(floor(log10(N)) + 1)
     listing = {}
-
 
     if not args.filepath:
         print()
@@ -268,9 +258,11 @@ def list_notes(args):
         if args.filepath:
             print(path)
         else:
-            print(ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width), timestamp=timestamp, title=title))
+            print(
+                ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width),
+                                timestamp=timestamp, title=title))
         sys.stdout.flush()
-        listing[N - 1 - i] = name 
+        listing[N - 1 - i] = name
 
     with open(LISTING, 'w') as f:
         json.dump(listing, f)
@@ -300,9 +292,10 @@ def random_note(args):
 # View #
 ########
 
+
 def copy_to_clipboard(text):
     if os.uname()[0] == 'Darwin':
-        # Escape '\' so as to not distrurb echo
+        # Escape '\' so as to not disturb echo
         text = re.sub('"', r'\"', text)
         subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
     else:
@@ -317,7 +310,8 @@ def view_note(args):
         print('\t' + 'filepath'.rjust(10) + ':', note['name'])
         for mode in ['created', 'edited', 'viewed']:
             timestamp = dt.datetime.strptime(note[mode][:16], '%Y%m%d%H%M%S')
-            print('\t' + mode.rjust(10) + ':', timestamp.strftime('%Y-%m-%d %a %H:%M'))
+            print('\t' + mode.rjust(10) + ':',
+                  timestamp.strftime('%Y-%m-%d %a %H:%M'))
     else:
         if args.filepath:
             print(note['name'])
@@ -327,7 +321,8 @@ def view_note(args):
                 text = f.read().strip()
 
             if args.line_numbers:
-                text = '\n'.join(str(i) + '\t' + line for i, line in enumerate(text.split('\n'), start=1))
+                text = '\n'.join(str(i) + '\t' + line for i, line
+                                 in enumerate(text.split('\n'), start=1))
 
             if args.include_lines:
                 numbers = args.include_lines.split(',')
@@ -340,9 +335,9 @@ def view_note(args):
                         else:
                             s, e = i.split('-')
                             if e == '':
-                                newtext += '\n'.join(lines[int(s) - 1:]) 
+                                newtext += '\n'.join(lines[int(s) - 1:])
                             else:
-                                newtext += '\n'.join(lines[int(s) - 1:int(e)]) 
+                                newtext += '\n'.join(lines[int(s) - 1:int(e)])
                     except:
                         print("poi: invalid range specification")
                         sys.exit(0)
@@ -358,11 +353,13 @@ def view_note(args):
 # Main #
 ########
 
+
 def main():
 
     # parse_arguments()
     parser = argparse.ArgumentParser(description='poi: Points of Interest')
-    parser.add_argument("-v", "--version", action='version', version=__VERSION__)
+    parser.add_argument("-v", "--version", action='version',
+                        version=__VERSION__)
     subparsers = parser.add_subparsers()
 
     # poi add
@@ -379,44 +376,53 @@ def main():
     edit_parser.add_argument('index', help='edit entry at INDEX')
     edit_parser.set_defaults(func=edit_note)
 
-    # poi list 
+    # poi list
     list_parser = subparsers.add_parser('list', help='list notes')
-    list_parser.add_argument('terms', help='list notes that include each of TERMS', nargs='*')
+    list_parser.add_argument('terms',
+                             help='list notes that include each of TERMS',
+                             nargs='*')
     list_parser.add_argument('-c', '--case-sensitive',
-            help="don't ignore case", default=False, action='store_true')
+                             help="don't ignore case", default=False,
+                             action='store_true')
     list_parser.add_argument('-f', '--filepath',
-            help='only list filepaths', default=False, action='store_true')
+                             help='only list filepaths', default=False,
+                             action='store_true')
     list_parser.add_argument('-e', '--edited',
-            help='sort by day edited', default=False, action='store_true')
+                             help='sort by day edited', default=False,
+                             action='store_true')
     list_parser.add_argument('-v', '--viewed',
-            help='sort by day viewed', default=False, action='store_true')
+                             help='sort by day viewed', default=False,
+                             action='store_true')
     list_parser.add_argument('-s', '--since',
-            help='only list notes created since (inclusive)')
+                             help='only list notes created since (inclusive)')
     list_parser.add_argument('-b', '--before',
-            help='only list notes created before (exclusive)')
+                             help='only list notes created before (exclusive)')
     list_parser.set_defaults(func=list_notes)
 
-
-    # poi random 
+    # poi random
     random_parser = subparsers.add_parser('random', help='show a random note')
     random_parser.set_defaults(func=random_note)
 
-    
     # poi view
     view_parser = subparsers.add_parser('view', help='view note')
     view_parser.add_argument('index', help='view entry at INDEX')
     view_parser.add_argument('-p', '--print',
-            help='print note on the screen', default=False, action='store_true')
+                             help='print note on the screen', default=False,
+                             action='store_true')
     view_parser.add_argument('-f', '--filepath',
-            help='only show filepath', default=False, action='store_true')
+                             help='only show filepath', default=False,
+                             action='store_true')
     view_parser.add_argument('-i', '--info',
-            help='show information about this note', default=False, action='store_true')
+                             help='show information about this note',
+                             default=False, action='store_true')
     view_parser.add_argument('-l', '--include-lines',
-            help='only include given lines')
+                             help='only include given lines')
     view_parser.add_argument('-n', '--line-numbers',
-            help='show line numbers', default=False, action='store_true')
+                             help='show line numbers', default=False,
+                             action='store_true')
     view_parser.add_argument('-c', '--clipboard',
-            help='copy to clipboard', default=False, action='store_true')
+                             help='copy to clipboard', default=False,
+                             action='store_true')
     view_parser.set_defaults(func=view_note)
 
     args = parser.parse_args()
