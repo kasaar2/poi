@@ -309,12 +309,20 @@ def random_note(args):
 
 
 def copy_to_clipboard(text):
-    if os.uname()[0] == 'Darwin':
-        # Escape '\' so as to not disturb echo
-        text = re.sub('"', r'\"', text)
+    operating_system = os.uname()[0]
+    # Escape '\' so as to not disturb echo
+    text = re.sub('"', r'\"', text)
+    if operating_system == 'Darwin':
         subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
+        return None
+    elif operating_system == 'Linux':
+        if shutil.which('xsel') is not None:
+            subprocess.call(['echo "' + text + '" | xsel --clipboard --input'], shell=True)
+            return None
+        else:
+            print('poi: copying to clipboard requires xsel to be installed.')
     else:
-        print("poi: currently clipboard only implemented for Mac")
+        print("poi: copying to clipboard is not implemented for your setup")
 
 
 def view_note(args):
