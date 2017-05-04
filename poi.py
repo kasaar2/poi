@@ -20,8 +20,6 @@ from random import choice
 
 
 __VERSION__ = '2.0.2'
-EDITOR = 'vim'
-EXTENSION = '.poi'
 LISTING = 'listing.json'
 LASTNOTE = 'lastnote'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
@@ -476,7 +474,18 @@ def main():
     if not os.path.exists('.poi'):
         print('Not a poi directory. Initialize with "poi init"')
         sys.exit(0)
-
+    global EDITOR
+    global EXTENSION
+    config = configparser.ConfigParser()
+    config.read('.poi/config')
+    try:
+        EDITOR = config['core']['editor']
+    except:
+        EDITOR = 'vim'
+    try:
+        EXTENSION = config['core']['extension']
+    except:
+        EXTENSION = '.poi'
     parse_arguments()
 
 
