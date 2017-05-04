@@ -126,6 +126,18 @@ def load_notes():
     return notes
 
 
+########
+# Init #
+########
+
+def init(args):
+    if os.path.exists('.poi'):
+        print('This directory has already been initialized')
+    else:
+        os.mkdir('.poi')
+        print('Poi initialized!')
+
+
 #######
 # Add #
 #######
@@ -398,6 +410,10 @@ def main():
     edit_parser = subparsers.add_parser('edit', help='edit note')
     edit_parser.add_argument('index', help='edit entry at INDEX')
     edit_parser.set_defaults(func=edit_note)
+
+    # poi initialize
+    init_parser = subparsers.add_parser('init', help='initialize poi directory')
+    init_parser.set_defaults(func=init)
 
     # poi list
     list_parser = subparsers.add_parser('list', help='list notes')
