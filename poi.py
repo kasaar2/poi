@@ -389,9 +389,8 @@ def view_note(args):
 ########
 
 
-def main():
+def parse_arguments():
 
-    # parse_arguments()
     parser = argparse.ArgumentParser(description='poi: Points of Interest')
     parser.add_argument("-v", "--version", action='version',
                         version=__VERSION__)
@@ -471,6 +470,14 @@ def main():
         args.func(args)
     else:
         parser.print_help()
+
+def main():
+    # Check environment
+    if not os.path.exists('.poi'):
+        print('Not a poi directory. Initialize with "poi init"')
+        sys.exit(0)
+
+    parse_arguments()
 
 
 if __name__ == '__main__':
