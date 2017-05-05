@@ -99,14 +99,16 @@ def fetch_note(args):
               'poi: note at index {} not available in last listing'.format(N))
             sys.exit(0)
     with open(LASTNOTE, 'w') as f:
-        f.write(note['name'] + '\n')
+        f.write(note['path'] + '\n')
     return note
 
 
-def parse_noteinfo(name):
+def parse_noteinfo(path):
     note = {}
     try:
+        name = os.path.basename(path)
         note['name'] = name
+        note['path'] = path
         note['created'] = name[:14]
         note['edited'] = name[14:28]
         note['viewed'] = name[28:42]
@@ -117,7 +119,7 @@ def parse_noteinfo(name):
 
 def load_notes():
     notes = []
-    filenames = glob.glob('*' + EXTENSION)
+    filenames = glob.glob('**/*' + EXTENSION, recursive=True)
     for filename in filenames:
         note = parse_noteinfo(filename)
         notes.append(note)
@@ -153,12 +155,21 @@ def create_file():
     while True:
         ts = now.strftime('%Y%m%d%H%M%S')
         filename = ts + ts + ts + EXTENSION
-        if not os.path.exists(filename):
+        year = ts[:4]
+        month = ts[4:6]
+        top = year
+        bot = os.path.join(year, month)
+        path = os.path.join(bot, filename)
+        if not os.path.exists(top):
+            os.mkdir(top)
+        if not os.path.exists(bot):
+            os.mkdir(bot)
+        if not os.path.exists(path):
             break
         else:
             now += delta
-    touch_file(filename, content='')
-    return filename
+    touch_file(path, content='')
+    return path
 
 
 def add_note(args):
@@ -173,7 +184,7 @@ def add_note(args):
 
 def delete_note(args):
     note = fetch_note(args)
-    with open(note['name']) as f:
+    with open(note['path']) as f:
         text = f.read()
     print('---')
     print(text.strip())
@@ -183,7 +194,7 @@ def delete_note(args):
         print('--->  cancelled')
         sys.exit(0)
     else:
-        os.remove(note['name'])
+        os.remove(note['path'])
         print('---> deleted')
 
     # Remove note from last listing
@@ -246,10 +257,10 @@ def list_notes(args):
         before = args.before.replace('-', '')
         notes = [note for note in notes if before >= note['created']]
 
-    name_title_and_timestamp = []
+    path_name_title_and_timestamp = []
 
     for note in notes:
-        with open(note['name']) as f:
+        with open(note['path']) as f:
             text = f.read().strip()
         title = text.strip().split('\n')[0].strip()
 
@@ -260,9 +271,9 @@ def list_notes(args):
             if term not in text:
                 break
         else:
-            name_title_and_timestamp.append([note['name'], title, note[mode]])
+            path_name_title_and_timestamp.append([note['path'], note['name'], title, note[mode]])
 
-    N = len(name_title_and_timestamp)
+    N = len(path_name_title_and_timestamp)
 
     # if there are no notes, do not show anything
     if N == 0:
@@ -274,7 +285,7 @@ def list_notes(args):
     if not args.filepath:
         print()
 
-    for i, (name, title, timestamp) in enumerate(name_title_and_timestamp):
+    for i, (path, name, title, timestamp) in enumerate(path_name_title_and_timestamp):
         try:
             timestamp = dt.datetime.strptime(timestamp[:14], '%Y%m%d%H%M%S')
         except:
@@ -287,7 +298,7 @@ def list_notes(args):
                 ENTRYFMT.format(index=str(N - 1 - i).ljust(index_width),
                                 timestamp=timestamp, title=title))
         sys.stdout.flush()
-        listing[N - 1 - i] = name
+        listing[N - 1 - i] = path
 
     with open(LISTING, 'w') as f:
         json.dump(listing, f)
