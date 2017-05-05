@@ -19,7 +19,7 @@ from math import floor, log10
 from random import choice
 
 
-__VERSION__ = '2.0.2'
+__VERSION__ = '2.1.0'
 LISTING = 'listing.json'
 LASTNOTE = 'lastnote'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
@@ -402,6 +402,21 @@ def view_note(args):
             else:
                 pydoc.pager(text)
 
+
+## Sweep
+########
+
+def sweep(args):
+    for note in load_notes():
+        year = note['name'][:4]
+        month = note['name'][4:6]
+        directory = os.path.join(year, month)
+        if os.path.dirname(note['path']) != directory:
+            newpath = os.path.join(directory, note['name'])
+            shutil.move(note['path'], newpath)
+            print(note['path'], '--->', newpath)
+
+
 ########
 # Main #
 ########
@@ -460,6 +475,10 @@ def parse_arguments():
     # poi random
     random_parser = subparsers.add_parser('random', help='show a random note')
     random_parser.set_defaults(func=random_note)
+
+    # poi sweep
+    sweep_parser = subparsers.add_parser('sweep', help='organize files')
+    sweep_parser.set_defaults(func=sweep)
 
     # poi view
     view_parser = subparsers.add_parser('view', help='view note')
