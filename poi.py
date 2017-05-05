@@ -23,6 +23,9 @@ __VERSION__ = '2.0.2'
 LISTING = 'listing.json'
 LASTNOTE = 'lastnote'
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
+EDITOR = 'vim'
+EXTENSION = '.poi'
+
 
 #########
 # Utils #
@@ -132,9 +135,15 @@ def load_notes():
 
 def init(args):
     if os.path.exists('.poi'):
-        print('This directory has already been initialized')
+        print('This directory seems to have been initialized already')
     else:
         os.mkdir('.poi')
+        config = configparser.ConfigParser()
+        config.add_section('core')
+        config.set('core', 'editor', EDITOR)
+        config.set('core', 'extension', EXTENSION)
+        with open(os.path.join('.poi', 'config'), 'w') as f:
+            config.write(f)
         print('Poi initialized!')
 
 
@@ -475,12 +484,21 @@ def parse_arguments():
     view_parser.set_defaults(func=view_note)
 
     args = parser.parse_args()
-    if hasattr(args, 'func'):
-        args.func(args)
-    else:
-        parser.print_help()
+    return args, parser
+
 
 def main():
+
+    args, parser = parse_arguments()
+
+    if not hasattr(args, 'func'):
+        parser.print_help()
+        sys.exit(0)
+
+    if args.func.__name__ == 'init':
+        args.func(args)
+        sys.exit(0)
+
     # Check environment
     if not os.path.exists('.poi'):
         print('Not a poi directory. Initialize with "poi init"')
@@ -489,15 +507,18 @@ def main():
     global EXTENSION
     config = configparser.ConfigParser()
     config.read('.poi/config')
+
     try:
         EDITOR = config['core']['editor']
     except:
-        EDITOR = 'vim'
+        pass
+
     try:
         EXTENSION = config['core']['extension']
     except:
-        EXTENSION = '.poi'
-    parse_arguments()
+        pass
+
+    args.func(args)
 
 
 if __name__ == '__main__':
