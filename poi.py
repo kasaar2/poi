@@ -6,6 +6,7 @@ import fnmatch
 import glob
 import json
 import os
+import pathlib
 import pydoc
 import random
 import re
@@ -20,8 +21,12 @@ from random import choice
 
 
 __VERSION__ = '2.1.0'
-LISTING = 'listing.json'
-LASTNOTE = 'lastnote'
+
+## Defaults
+###########
+
+LISTING =  os.path.join('.poi', 'listing.json')
+LASTNOTE = os.path.join('.poi', 'lastnote')
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 EDITOR = 'vim'
 EXTENSION = '.poi'
@@ -51,6 +56,16 @@ def load_listing():
 def open_editor(path):
     subprocess.call(['/usr/bin/env', EDITOR, path])
 
+def get_path(name):
+    """
+    YYYYMMDDYYYYMMDDYYYYMMDD.poi -> YYYY/MM/YYYYMMDDYYYYMMDDYYYYMMDD.poi
+    """
+    year = name[:4]
+    month = name[4:6]
+    directory = os.path.join(year, month)
+    path = os.path.join(directory, name)
+    return path
+
 
 def update_info(note, mode):
 
@@ -66,18 +81,19 @@ def update_info(note, mode):
     else:
         pass
     new['name'] = new['created'] + new['edited'] + new['viewed'] + EXTENSION
+    new['path'] = get_path(new['name'])
 
-    shutil.move(old['name'], new['name'])
+    shutil.move(old['path'], new['path'])
 
     # Update lastnote
     with open(LASTNOTE, 'w') as f:
-        f.write(new['name'] + '\n')
+        f.write(new['path'] + '\n')
 
     # Update information in listing
     listing = load_listing()
     for index, name in listing.items():
-        if name == old['name']:
-            listing[index] = new['name']
+        if name == old['path']:
+            listing[index] = new['path']
     with open(LISTING, 'w') as f:
         json.dump(listing, f)
 
@@ -122,9 +138,9 @@ def parse_noteinfo(path):
 
 def load_notes():
     notes = []
-    filenames = glob.glob('**/*' + EXTENSION, recursive=True)
-    for filename in filenames:
-        note = parse_noteinfo(filename)
+    filepaths = glob.glob('**/*' + EXTENSION, recursive=True)
+    for filepath in filepaths:
+        note = parse_noteinfo(filepath)
         notes.append(note)
     return notes
 
@@ -151,13 +167,6 @@ def init(args):
 # Add #
 #######
 
-
-def touch_file(path, content=''):
-    if not os.path.exists(path):
-        with open(path, 'w') as f:
-            f.write(content)
-
-
 def create_file():
     delta = dt.timedelta(seconds=1)
     now = dt.datetime.now()
@@ -166,25 +175,20 @@ def create_file():
         filename = ts + ts + ts + EXTENSION
         year = ts[:4]
         month = ts[4:6]
-        top = year
-        bot = os.path.join(year, month)
-        path = os.path.join(bot, filename)
-        if not os.path.exists(top):
-            os.mkdir(top)
-        if not os.path.exists(bot):
-            os.mkdir(bot)
-        if not os.path.exists(path):
+        directory = pathlib.Path(year, month)
+        directory.mkdir(exist_ok=True, parents=True)
+        path = directory.joinpath(filename)
+        if not path.exists():
+            path.write_text('')
             break
         else:
             now += delta
-    touch_file(path, content='')
     return path
 
 
 def add_note(args):
     path = create_file()
     open_editor(path)
-
 
 ##########
 # Delete #
@@ -230,7 +234,7 @@ def delete_note(args):
 def edit_note(args):
     note = fetch_note(args)
     note = update_info(note, mode='edited')
-    open_editor(note['name'])
+    open_editor(note['path'])
 
 
 ##########
@@ -360,17 +364,17 @@ def view_note(args):
     note = update_info(note, mode='viewed')
 
     if args.info:
-        print('\t' + 'filepath'.rjust(10) + ':', note['name'])
+        print('\t' + 'filepath'.rjust(10) + ':', note['path'])
         for mode in ['created', 'edited', 'viewed']:
             timestamp = dt.datetime.strptime(note[mode][:16], '%Y%m%d%H%M%S')
             print('\t' + mode.rjust(10) + ':',
                   timestamp.strftime('%Y-%m-%d %a %H:%M'))
     else:
         if args.filepath:
-            print(note['name'])
+            print(note['path'])
         else:
 
-            with open(note['name']) as f:
+            with open(note['path']) as f:
                 text = f.read().strip()
 
             if args.line_numbers:
@@ -406,13 +410,15 @@ def view_note(args):
 ## Sweep
 ########
 
+
 def sweep(args):
     for note in load_notes():
-        year = note['name'][:4]
-        month = note['name'][4:6]
-        directory = os.path.join(year, month)
-        if os.path.dirname(note['path']) != directory:
-            newpath = os.path.join(directory, note['name'])
+        name = note['name']
+        year = name[:4]
+        month = name[4:6]
+        newdir = pathlib.Path(year, month).mkdir(exist_ok=True, parents=True)
+        newpath = os.path.join(year, month, name)
+        if note['path'] != newpath:
             shutil.move(note['path'], newpath)
             print(note['path'], '--->', newpath)
 
