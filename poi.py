@@ -56,6 +56,7 @@ def load_listing():
 def open_editor(path):
     subprocess.call(['/usr/bin/env', EDITOR, path])
 
+
 def get_path(name):
     """
     YYYYMMDDYYYYMMDDYYYYMMDD.poi -> YYYY/MM/YYYYMMDDYYYYMMDDYYYYMMDD.poi
@@ -81,7 +82,7 @@ def update_info(note, mode):
     else:
         pass
     new['name'] = new['created'] + new['edited'] + new['viewed'] + EXTENSION
-    new['path'] = get_path(new['name'])
+    new['path'] = os.path.join(os.path.dirname(old['path']), new['name'])
 
     shutil.move(old['path'], new['path'])
 
