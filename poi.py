@@ -189,6 +189,15 @@ def create_file():
 
 def add_note(args):
     path = create_file()
+    if args.tag is not None:
+        tags = []
+        for t in args.tag:
+            if t in config['tag']:
+                tags.append(config['tag'][t])
+            else:
+                tags.append(t)
+        with open(path, 'w') as f:
+            f.write(9 * '\n' + ' '.join(tags))  
     open_editor(path)
 
 ##########
@@ -438,6 +447,7 @@ def parse_arguments():
 
     # poi add
     add_parser = subparsers.add_parser('add', help='add note')
+    add_parser.add_argument('-t', '--tag', help='Add a tag', nargs='+')
     add_parser.set_defaults(func=add_note)
 
     # poi delete
@@ -521,6 +531,7 @@ def main():
         sys.exit(0)
     global EDITOR
     global EXTENSION
+    global config
     config = configparser.ConfigParser()
     config.read('.poi/config.ini')
 
