@@ -255,10 +255,10 @@ def list_notes(args):
     notes = load_notes()
     notes = sorted(notes, key=lambda x: x[mode])
 
-    if args.days_ago is not None:
+    if args.num_days_ago is not None:
         delta = dt.timedelta(days=1)
         now = dt.datetime.now()
-        then = now - args.days_ago * delta
+        then = now - args.num_days_ago * delta
         since = then.strftime('%Y%m%d')
         before = (then + delta).strftime('%Y%m%d')
         notes = [note for note in notes if since <= note['created'] < before]
@@ -475,7 +475,7 @@ def parse_arguments():
                              help='only list notes created since (inclusive)')
     list_parser.add_argument('-b', '--before',
                              help='only list notes created before (exclusive)')
-    list_parser.add_argument('-y', '--days-ago', type=int,
+    list_parser.add_argument('-n', '--num-days-ago', type=int,
                              help='only list notes created number of days ago')
     list_parser.set_defaults(func=list_notes)
 
