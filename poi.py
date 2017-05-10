@@ -515,16 +515,6 @@ def parse_arguments():
 
 def main():
 
-    args, parser = parse_arguments()
-
-    if not hasattr(args, 'func'):
-        parser.print_help()
-        sys.exit(0)
-
-    if args.func.__name__ == 'init':
-        args.func(args)
-        sys.exit(0)
-
     # Check environment
     if not os.path.exists('.poi'):
         print('Not a poi directory. Initialize with "poi init"')
@@ -532,7 +522,7 @@ def main():
     global EDITOR
     global EXTENSION
     config = configparser.ConfigParser()
-    config.read('.poi/config')
+    config.read('.poi/config.ini')
 
     try:
         EDITOR = config['core']['editor']
@@ -543,6 +533,23 @@ def main():
         EXTENSION = config['core']['extension']
     except:
         pass
+
+    for alias in config['alias']:
+        if sys.argv[1] == alias:
+            args = config['alias'][alias].split()
+            n = len(args)
+            sys.argv[1: n + 1] = args
+
+    args, parser = parse_arguments()
+
+    if not hasattr(args, 'func'):
+        parser.print_help()
+        sys.exit(0)
+
+    if args.func.__name__ == 'init':
+        args.func(args)
+        sys.exit(0)
+
 
     args.func(args)
 
