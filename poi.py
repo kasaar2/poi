@@ -30,6 +30,7 @@ LASTNOTE = os.path.join('.poi', 'lastnote')
 ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 EDITOR = 'vim'
 EXTENSION = '.poi'
+TAGPREF = '#: '
 
 
 #########
@@ -159,6 +160,7 @@ def init(args):
         config.add_section('core')
         config.set('core', 'editor', EDITOR)
         config.set('core', 'extension', EXTENSION)
+        config.set('core', 'tag_prefix', TAGPREF)
         with open(os.path.join('.poi', 'config'), 'w') as f:
             config.write(f)
         print('Poi initialized!')
@@ -197,7 +199,7 @@ def add_note(args):
             else:
                 tags.append(t)
         with open(path, 'w') as f:
-            f.write(9 * '\n' + ' '.join(tags))  
+            f.write(9 * '\n' + TAGPREF + ', '.join(tags))  
     open_editor(path)
 
 ##########
@@ -525,10 +527,6 @@ def parse_arguments():
 
 def main():
 
-    # Check environment
-    if not os.path.exists('.poi'):
-        print('Not a poi directory. Initialize with "poi init"')
-        sys.exit(0)
     global EDITOR
     global EXTENSION
     global config
@@ -545,22 +543,23 @@ def main():
     except:
         pass
 
-    for alias in config['alias']:
-        if sys.argv[1] == alias:
-            args = config['alias'][alias].split()
-            n = len(args)
-            sys.argv[1: n + 1] = args
+    try:
+        TAGPREF = config['core']['tag_prefix']
+    except:
+        pass
+
+    if len(sys.argv) > 1:
+        for alias in config['alias']:
+            if sys.argv[1] == alias:
+                args = config['alias'][alias].split()
+                n = len(args)
+                sys.argv[1: n + 1] = args
 
     args, parser = parse_arguments()
 
     if not hasattr(args, 'func'):
         parser.print_help()
         sys.exit(0)
-
-    if args.func.__name__ == 'init':
-        args.func(args)
-        sys.exit(0)
-
 
     args.func(args)
 
