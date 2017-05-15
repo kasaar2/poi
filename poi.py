@@ -25,12 +25,6 @@ __VERSION__ = '2.1.0'
 ## Defaults
 ###########
 
-LISTING =  os.path.join('.poi', 'listing.json')
-LASTNOTE = os.path.join('.poi', 'lastnote')
-ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
-EDITOR = 'vim'
-EXTENSION = '.poi'
-TAGPREF = '#: '
 
 
 #########
@@ -140,7 +134,7 @@ def parse_noteinfo(path):
 
 def load_notes():
     notes = []
-    filepaths = glob.glob('**/*' + EXTENSION, recursive=True)
+    filepaths = glob.glob(os.path.join(POIHOME, '**/*' + EXTENSION), recursive=True)
     for filepath in filepaths:
         note = parse_noteinfo(filepath)
         notes.append(note)
@@ -152,8 +146,8 @@ def load_notes():
 ########
 
 def init(args):
-    if os.path.exists('.poi'):
-        print('This directory seems to have been initialized already')
+    if os.path.exists(os.path.join(POIHOME, '.poi')):
+        print('poi has alreaby been initialized to {}'.format(POIHOME))
     else:
         os.mkdir('.poi')
         config = configparser.ConfigParser()
@@ -178,7 +172,7 @@ def create_file():
         filename = ts + ts + ts + EXTENSION
         year = ts[:4]
         month = ts[4:6]
-        directory = pathlib.Path(year, month)
+        directory = pathlib.Path(POIHOME, year, month)
         directory.mkdir(exist_ok=True, parents=True)
         path = directory.joinpath(filename)
         if not path.exists():
@@ -345,7 +339,7 @@ def random_note(args):
     i = random.randint(0, N - 1)
     note = notes[i]
     note = update_info(note, mode='viewed')
-    with open(note['name']) as f:
+    with open(note['path']) as f:
         text = f.read()
     pydoc.pager(text)
 
@@ -429,10 +423,33 @@ def sweep(args):
         year = name[:4]
         month = name[4:6]
         newdir = pathlib.Path(year, month).mkdir(exist_ok=True, parents=True)
-        newpath = os.path.join(year, month, name)
+        newpath = os.path.join(POIHOME, year, month, name)
         if note['path'] != newpath:
             shutil.move(note['path'], newpath)
             print(note['path'], '--->', newpath)
+
+
+def configure(args):
+
+    if args.tags:
+        if 'tag' in config:
+            for k, v in config['tag'].items():
+                print(f'{k} = {v}')
+
+    elif args.all:
+        for section in config:
+            if section == 'DEFAULT':
+                continue
+            print('[' + section +']')
+            for k, v in config[section].items():
+                print(f'\t{k} = {v}')
+
+    if args.key is not None and args.value is not None:
+        section, key = args.key.split('.')  # core.editor
+        config.set(section, key, args.value)
+        with open(os.path.join(POIHOME, '.poi/config.ini'), 'w') as f:
+            config.write(f)
+        
 
 
 ########
@@ -442,7 +459,7 @@ def sweep(args):
 
 def parse_arguments():
 
-    parser = argparse.ArgumentParser(description='poi: Points of Interest')
+    parser = argparse.ArgumentParser(description='poi: points of interest')
     parser.add_argument("-v", "--version", action='version',
                         version=__VERSION__)
     subparsers = parser.add_subparsers()
@@ -451,6 +468,16 @@ def parse_arguments():
     add_parser = subparsers.add_parser('add', help='add note')
     add_parser.add_argument('-t', '--tag', help='Add a tag', nargs='+')
     add_parser.set_defaults(func=add_note)
+
+    # poi config
+    config_parser = subparsers.add_parser('config', help='configuration')
+    config_parser.add_argument('key', help='set a key-value pair', nargs='?')
+    config_parser.add_argument('value', help='set a key-value pair', nargs='?')
+    config_parser.add_argument('-t', '--tags', help='List tags', default=False,
+                               action='store_true')
+    config_parser.add_argument('-a', '--all', help='List all configuration parameters', default=False,
+                               action='store_true')
+    config_parser.set_defaults(func=configure)
 
     # poi delete
     delete_parser = subparsers.add_parser('delete', help='delete note')
@@ -527,26 +554,46 @@ def parse_arguments():
 
 def main():
 
-    global EDITOR
-    global EXTENSION
+    # Set defaults
+    global POIHOME
+    try:
+        POIHOME = os.getenv('POIHOME')
+        if POIHOME is None:
+            raise Exception
+    except:
+        print('Please set enviromental variable POIHOME',
+               'to point to a poi directory.')
+        sys.exit(0)
+
     global config
     config = configparser.ConfigParser()
-    config.read('.poi/config.ini')
+    config.read(os.path.join(POIHOME, '.poi/config.ini'))
 
+    global EDITOR
     try:
         EDITOR = config['core']['editor']
     except:
-        pass
+        EDITOR = 'vim'
 
+    global EXTENSION
     try:
         EXTENSION = config['core']['extension']
     except:
-        pass
+        EXTENSION = '.poi'
 
     try:
         TAGPREF = config['core']['tag_prefix']
     except:
-        pass
+        TAGPREF = '#: '
+
+    global LISTING
+    LISTING =  os.path.join(POIHOME, '.poi', 'listing.json')
+
+    global LASTNOTE
+    LASTNOTE = os.path.join(POIHOME, '.poi', 'lastnote')
+
+    global ENTRYFMT
+    ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
 
     if len(sys.argv) > 1:
         for alias in config['alias']:
