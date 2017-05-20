@@ -214,6 +214,7 @@ def delete_note(args):
         sys.exit(0)
     else:
         os.remove(note['path'])
+        print(note['path'])
         print('---> deleted')
 
     # Remove note from last listing
@@ -353,11 +354,11 @@ def copy_to_clipboard(text):
     # Escape '\' so as to not disturb echo
     text = re.sub('"', r'\"', text)
     if operating_system == 'Darwin':
-        subprocess.call(['echo "' + text + '" | pbcopy'], shell=True)
+        subprocess.call(['echo -n "' + text + '" | pbcopy'], shell=True)
         return None
     elif operating_system == 'Linux':
         if shutil.which('xsel') is not None:
-            subprocess.call(['echo "' + text + '" | xsel --clipboard --input'], shell=True)
+            subprocess.call(['echo -n "' + text + '" | xsel --clipboard --input'], shell=True)
             return None
         else:
             print('poi: copying to clipboard requires xsel to be installed.')
@@ -406,7 +407,7 @@ def view_note(args):
                         sys.exit(0)
                 text = newtext
             if args.clipboard:
-                copy_to_clipboard(text)
+                copy_to_clipboard(text.strip())
             elif args.print:
                 print(text)
             else:
@@ -581,6 +582,7 @@ def main():
     except:
         EXTENSION = '.poi'
 
+    global TAGPREF
     try:
         TAGPREF = config['core']['tag_prefix']
     except:
