@@ -22,12 +22,6 @@ from random import choice
 
 __VERSION__ = '2.1.0'
 
-## Defaults
-###########
-
-
-
-#########
 # Utils #
 #########
 
@@ -134,7 +128,8 @@ def parse_noteinfo(path):
 
 def load_notes():
     notes = []
-    filepaths = glob.glob(os.path.join(POIHOME, '**/*' + EXTENSION), recursive=True)
+    filepaths = glob.glob(os.path.join(POIHOME, '**/*' + EXTENSION),
+                          recursive=True)
     for filepath in filepaths:
         note = parse_noteinfo(filepath)
         notes.append(note)
@@ -193,7 +188,7 @@ def add_note(args):
             else:
                 tags.append(t)
         with open(path, 'w') as f:
-            f.write(9 * '\n' + TAGPREF + ', '.join(tags))  
+            f.write(9 * '\n' + TAGPREF + ', '.join(tags))
     open_editor(path)
 
 ##########
@@ -291,7 +286,8 @@ def list_notes(args):
             if term not in text:
                 break
         else:
-            path_name_title_and_timestamp.append([note['path'], note['name'], title, note[mode]])
+            path_name_title_and_timestamp.append(
+                    [note['path'], note['name'], title, note[mode]])
 
     N = len(path_name_title_and_timestamp)
 
@@ -305,7 +301,8 @@ def list_notes(args):
     if not args.filepath:
         print()
 
-    for i, (path, name, title, timestamp) in enumerate(path_name_title_and_timestamp):
+    for i, (path, name, title, timestamp) in \
+            enumerate(path_name_title_and_timestamp):
         try:
             timestamp = dt.datetime.strptime(timestamp[:14], '%Y%m%d%H%M%S')
         except:
@@ -358,7 +355,8 @@ def copy_to_clipboard(text):
         return None
     elif operating_system == 'Linux':
         if shutil.which('xsel') is not None:
-            subprocess.call(['echo -n "' + text + '" | xsel --clipboard --input'], shell=True)
+            subprocess.call(['echo -n "' + text +
+                             '" | xsel --clipboard --input'], shell=True)
             return None
         else:
             print('poi: copying to clipboard requires xsel to be installed.')
@@ -414,10 +412,6 @@ def view_note(args):
                 pydoc.pager(text)
 
 
-## Sweep
-########
-
-
 def sweep(args):
     for note in load_notes():
         name = note['name']
@@ -441,7 +435,7 @@ def configure(args):
         for section in config:
             if section == 'DEFAULT':
                 continue
-            print('[' + section +']')
+            print('[' + section + ']')
             for k, v in config[section].items():
                 print(f'\t{k} = {v}')
 
@@ -450,12 +444,6 @@ def configure(args):
         config.set(section, key, args.value)
         with open(os.path.join(POIHOME, '.poi/config.ini'), 'w') as f:
             config.write(f)
-        
-
-
-########
-# Main #
-########
 
 
 def parse_arguments():
@@ -476,7 +464,9 @@ def parse_arguments():
     config_parser.add_argument('value', help='set a key-value pair', nargs='?')
     config_parser.add_argument('-t', '--tags', help='List tags', default=False,
                                action='store_true')
-    config_parser.add_argument('-a', '--all', help='List all configuration parameters', default=False,
+    config_parser.add_argument('-a', '--all',
+                               help='List all configuration parameters',
+                               default=False,
                                action='store_true')
     config_parser.set_defaults(func=configure)
 
@@ -491,7 +481,8 @@ def parse_arguments():
     edit_parser.set_defaults(func=edit_note)
 
     # poi initialize
-    init_parser = subparsers.add_parser('init', help='initialize poi directory')
+    init_parser = subparsers.add_parser('init',
+                                        help='initialize poi directory')
     init_parser.set_defaults(func=init)
 
     # poi list
@@ -563,7 +554,7 @@ def main():
             raise Exception
     except:
         print('Please set enviromental variable POIHOME',
-               'to point to a poi directory.')
+              'to point to a poi directory.')
         sys.exit(0)
 
     global config
@@ -589,7 +580,7 @@ def main():
         TAGPREF = '#: '
 
     global LISTING
-    LISTING =  os.path.join(POIHOME, '.poi', 'listing.json')
+    LISTING = os.path.join(POIHOME, '.poi', 'listing.json')
 
     global LASTNOTE
     LASTNOTE = os.path.join(POIHOME, '.poi', 'lastnote')
