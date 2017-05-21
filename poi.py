@@ -145,6 +145,7 @@ def init(args):
         print('poi has alreaby been initialized to {}'.format(POIHOME))
     else:
         os.mkdir('.poi')
+        os.mkdir('.poi/backups')
         config = configparser.ConfigParser()
         config.add_section('core')
         config.set('core', 'editor', EDITOR)
@@ -236,6 +237,7 @@ def delete_note(args):
 def edit_note(args):
     note = fetch_note(args)
     note = update_info(note, mode='edited')
+    shutil.copy(note['path'], os.path.join(BACKUPS, note['name']))
     open_editor(note['path'])
 
 
@@ -587,6 +589,9 @@ def main():
 
     global ENTRYFMT
     ENTRYFMT = '{index} {timestamp:%Y-%m-%d %a %H:%M}   {title}'
+
+    global BACKUPS
+    BACKUPS = os.path.join(POIHOME, '.poi', 'backups')
 
     if len(sys.argv) > 1:
         for alias in config['alias']:
